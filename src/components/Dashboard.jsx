@@ -6,7 +6,7 @@ import { useDailyLog } from '../hooks/useDailyLog'
 import { useObjectives } from '../hooks/useObjectives'
 import { useSettings } from '../hooks/useSettings'
 
-function Dashboard() {
+function Dashboard({ setActiveTab }) {
   const { dailyLog, addWater, loading: logLoading } = useDailyLog()
   const { objectives, toggleObjective, removeObjective, getProgress, addObjective, loading: objLoading } = useObjectives()
   const { settings } = useSettings()
@@ -141,7 +141,9 @@ function Dashboard() {
                 {dailyLog.meals.length} repas enregistré(s)
               </div>
             )}
-            <button className="w-full bg-gradient-to-r from-orange-500/30 to-red-500/30 hover:from-orange-500/50 hover:to-red-500/50 rounded-lg py-2 text-orange-400 transition">
+            <button
+              onClick={() => setActiveTab('nutrition')}
+              className="w-full bg-gradient-to-r from-orange-500/30 to-red-500/30 hover:from-orange-500/50 hover:to-red-500/50 rounded-lg py-2 text-orange-400 transition">
               + Ajouter un repas
             </button>
           </div>

@@ -4,6 +4,7 @@ import { OrbitControls, Stars } from '@react-three/drei'
 import { motion } from 'framer-motion'
 import { Settings as SettingsIcon, Bell } from 'lucide-react'
 import Dashboard from './components/Dashboard'
+import Objectives from './components/Objectives'
 import Nutrition from './components/Nutrition'
 import Progress from './components/Progress'
 import Settings from './components/Settings'
@@ -75,7 +76,8 @@ function App() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto px-6 py-6">
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} />}
+          {activeTab === 'objectives' && <Objectives />}
           {activeTab === 'nutrition' && <Nutrition />}
           {activeTab === 'progress' && <Progress />}
           {activeTab === 'settings' && <Settings />}

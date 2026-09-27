@@ -1,22 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Stars, Sphere } from '@react-three/drei'
+import { OrbitControls, Stars } from '@react-three/drei'
 import { motion } from 'framer-motion'
-import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { Droplets, Flame, Trophy, Settings, Bell, ChevronRight } from 'lucide-react'
+import { Settings as SettingsIcon, Bell } from 'lucide-react'
 import Dashboard from './components/Dashboard'
+import Settings from './components/Settings'
 import NavigationBar from './components/NavigationBar'
 import './index.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [waterIntake, setWaterIntake] = useState(4)
-  const [dailyData, setDailyData] = useState([
-    { time: '08:00', water: 1, calories: 0 },
-    { time: '12:00', water: 2, calories: 450 },
-    { time: '16:00', water: 3, calories: 650 },
-    { time: '20:00', water: 4, calories: 900 }
-  ])
 
   useEffect(() => {
     registerServiceWorker()
@@ -72,7 +65,7 @@ function App() {
                 onClick={() => setActiveTab(activeTab === 'settings' ? 'dashboard' : 'settings')}
                 className="p-2 text-cyan-400 hover:text-cyan-300"
               >
-                <Settings size={24} />
+                <SettingsIcon size={24} />
               </button>
             </div>
           </div>
@@ -80,36 +73,8 @@ function App() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto px-6 py-6">
-          {activeTab === 'dashboard' && (
-            <Dashboard
-              waterIntake={waterIntake}
-              setWaterIntake={setWaterIntake}
-              dailyData={dailyData}
-            />
-          )}
-          {activeTab === 'settings' && (
-            <motion.div
-              className="glass-dark p-8 rounded-2xl max-w-4xl mx-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <h2 className="text-2xl font-bold text-cyan-400 mb-6">⚙️ Paramètres</h2>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="block text-sm text-cyan-300">Rappel Eau (minutes)</label>
-                  <input type="number" defaultValue="60" className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm text-cyan-300">Objectif Eau (L)</label>
-                  <input type="number" defaultValue="2" className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm text-cyan-300">Objectif Calories</label>
-                  <input type="number" defaultValue="2000" className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white" />
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'settings' && <Settings />}
         </div>
 
         {/* Footer Navigation */}

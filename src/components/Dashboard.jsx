@@ -1,26 +1,41 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { Droplets, Flame, Trophy, Plus, Check } from 'lucide-react'
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { Droplets, Flame, Trophy, Plus, Check, Trash2 } from 'lucide-react'
+import { useDailyLog } from '../hooks/useDailyLog'
+import { useObjectives } from '../hooks/useObjectives'
+import { useSettings } from '../hooks/useSettings'
 
-function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
-  const [objectives, setObjectives] = useState([
-    { id: 1, title: 'Morning Workout', completed: false, category: 'sport' },
-    { id: 2, title: 'Read 30 min', completed: true, category: 'learning' },
-    { id: 3, title: 'Log all meals', completed: false, category: 'nutrition' },
-    { id: 4, title: 'Meditate', completed: false, category: 'wellness' }
-  ])
+function Dashboard() {
+  const { dailyLog, addWater, loading: logLoading } = useDailyLog()
+  const { objectives, toggleObjective, removeObjective, getProgress, addObjective, loading: objLoading } = useObjectives()
+  const { settings } = useSettings()
+  const [newObjectiveTitle, setNewObjectiveTitle] = useState('')
 
-  const toggleObjective = (id) => {
-    setObjectives(objectives.map(obj =>
-      obj.id === id ? { ...obj, completed: !obj.completed } : obj
-    ))
+  const waterGoal = settings.waterGoal || 8
+  const waterProgress = (dailyLog?.water || 0) / waterGoal * 100
+  const calorieGoal = settings.calorieGoal || 2000
+  const totalCalories = dailyLog?.calories || 0
+  const objectiveProgress = getProgress()
+
+  const handleAddWater = () => {
+    addWater(0.5)
   }
 
-  const waterGoal = 8
-  const waterProgress = (waterIntake / waterGoal) * 100
-  const calorieGoal = 2000
-  const totalCalories = dailyData[dailyData.length - 1]?.calories || 0
+  const handleAddObjective = async () => {
+    if (newObjectiveTitle.trim()) {
+      await addObjective({ title: newObjectiveTitle, category: 'general' })
+      setNewObjectiveTitle('')
+    }
+  }
+
+  // Generate chart data from daily log
+  const chartData = [
+    { time: '08:00', water: 0, calories: 0 },
+    { time: '12:00', water: Math.min(dailyLog?.water || 0, waterGoal / 2), calories: Math.floor((totalCalories / calorieGoal) * 100 * 0.5) },
+    { time: '16:00', water: Math.min(dailyLog?.water || 0, waterGoal * 0.75), calories: Math.floor((totalCalories / calorieGoal) * 100 * 0.75) },
+    { time: '20:00', water: dailyLog?.water || 0, calories: totalCalories }
+  ]
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -40,6 +55,14 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
       y: 0,
       transition: { type: 'spring', damping: 12 }
     }
+  }
+
+  if (logLoading || objLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-cyan-400 animate-pulse">Chargement...</div>
+      </div>
+    )
   }
 
   return (
@@ -62,12 +85,12 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
           </div>
 
           <div className="mb-4">
-            <div className="text-3xl font-bold text-white mb-2">{waterIntake}L / {waterGoal}L</div>
+            <div className="text-3xl font-bold text-white mb-2">{(dailyLog?.water || 0).toFixed(1)}L / {waterGoal}L</div>
             <div className="w-full bg-slate-900/50 rounded-full h-3 overflow-hidden">
               <motion.div
                 className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${waterProgress}%` }}
+                animate={{ width: `${Math.min(waterProgress, 100)}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
@@ -75,13 +98,13 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
 
           <div className="flex gap-2">
             <button
-              onClick={() => setWaterIntake(Math.max(0, waterIntake - 0.5))}
+              onClick={() => addWater(-0.5)}
               className="flex-1 bg-slate-900/50 hover:bg-slate-800 rounded-lg py-2 text-cyan-400 transition"
             >
               −
             </button>
             <button
-              onClick={() => setWaterIntake(waterIntake + 0.5)}
+              onClick={handleAddWater}
               className="flex-1 bg-gradient-to-r from-blue-500/30 to-cyan-500/30 hover:from-blue-500/50 hover:to-cyan-500/50 rounded-lg py-2 text-cyan-400 transition flex items-center justify-center gap-1"
             >
               <Plus size={18} /> Ajouter
@@ -112,9 +135,16 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
             </div>
           </div>
 
-          <button className="w-full bg-gradient-to-r from-orange-500/30 to-red-500/30 hover:from-orange-500/50 hover:to-red-500/50 rounded-lg py-2 text-orange-400 transition">
-            + Ajouter un repas
-          </button>
+          <div className="space-y-2">
+            {dailyLog?.meals && dailyLog.meals.length > 0 && (
+              <div className="text-xs text-gray-400 mb-2">
+                {dailyLog.meals.length} repas enregistré(s)
+              </div>
+            )}
+            <button className="w-full bg-gradient-to-r from-orange-500/30 to-red-500/30 hover:from-orange-500/50 hover:to-red-500/50 rounded-lg py-2 text-orange-400 transition">
+              + Ajouter un repas
+            </button>
+          </div>
         </motion.div>
 
         {/* Today's Progress */}
@@ -129,30 +159,55 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
           </div>
 
           <div className="mb-4">
-            <div className="text-3xl font-bold text-white mb-2">
-              {Math.round((objectives.filter(o => o.completed).length / objectives.length) * 100)}%
-            </div>
+            <div className="text-3xl font-bold text-white mb-2">{objectiveProgress}%</div>
             <p className="text-sm text-gray-400">{objectives.filter(o => o.completed).length} / {objectives.length} objectifs</p>
           </div>
 
-          <div className="space-y-2">
-            {objectives.map(obj => (
-              <div key={obj.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleObjective(obj.id)}
-                  className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                    obj.completed
-                      ? 'bg-cyan-500 border-cyan-500'
-                      : 'border-cyan-500/30 hover:border-cyan-500'
-                  }`}
-                >
-                  {obj.completed && <Check size={16} className="text-slate-900" />}
-                </button>
-                <span className={`text-sm ${obj.completed ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
-                  {obj.title}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {objectives.length === 0 ? (
+              <p className="text-xs text-gray-500 italic">Aucun objectif pour aujourd'hui</p>
+            ) : (
+              objectives.map(obj => (
+                <div key={obj.id} className="flex items-center gap-2 group">
+                  <button
+                    onClick={() => toggleObjective(obj.id)}
+                    className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                      obj.completed
+                        ? 'bg-cyan-500 border-cyan-500'
+                        : 'border-cyan-500/30 hover:border-cyan-500'
+                    }`}
+                  >
+                    {obj.completed && <Check size={16} className="text-slate-900" />}
+                  </button>
+                  <span className={`text-sm flex-1 ${obj.completed ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
+                    {obj.title}
+                  </span>
+                  <button
+                    onClick={() => removeObjective(obj.id)}
+                    className="opacity-0 group-hover:opacity-100 transition text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={newObjectiveTitle}
+              onChange={(e) => setNewObjectiveTitle(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddObjective()}
+              placeholder="Nouvel objectif..."
+              className="flex-1 bg-slate-900/50 border border-cyan-500/30 rounded px-2 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              onClick={handleAddObjective}
+              className="bg-cyan-500/30 hover:bg-cyan-500/50 rounded px-2 py-1 text-cyan-400 transition"
+            >
+              <Plus size={14} />
+            </button>
           </div>
         </motion.div>
       </div>
@@ -163,7 +218,7 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
         <div className="glass-dark p-6 rounded-2xl">
           <h3 className="text-lg font-semibold text-cyan-400 mb-4">Hydratation (Jour)</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={dailyData}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.8}/>
@@ -183,7 +238,7 @@ function Dashboard({ waterIntake, setWaterIntake, dailyData }) {
         <div className="glass-dark p-6 rounded-2xl">
           <h3 className="text-lg font-semibold text-cyan-400 mb-4">Calories (Jour)</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={dailyData}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ff6b35" stopOpacity={0.8}/>

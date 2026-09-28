@@ -1,19 +1,35 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Check, Trash2, Flag } from 'lucide-react'
+import { Plus, Check, Trash2, Flag, Target } from 'lucide-react'
 import { useObjectives } from '../hooks/useObjectives'
+import { useDailyLog } from '../hooks/useDailyLog'
 
 function Objectives() {
   const { objectives, addObjective, toggleObjective, removeObjective, getProgress, loading } = useObjectives()
+  const { dailyLog } = useDailyLog()
   const [newTitle, setNewTitle] = useState('')
   const [category, setCategory] = useState('general')
   const [showForm, setShowForm] = useState(false)
+  const [objectiveType, setObjectiveType] = useState('simple')
+  const [targetValue, setTargetValue] = useState('')
+  const [targetUnit, setTargetUnit] = useState('L')
 
   const handleAddObjective = async () => {
     if (newTitle.trim()) {
-      await addObjective({ title: newTitle, category })
+      const objective = {
+        title: newTitle,
+        category,
+        type: objectiveType,
+        targetValue: objectiveType !== 'simple' ? parseFloat(targetValue) || 0 : null,
+        targetUnit: objectiveType !== 'simple' ? targetUnit : null
+      }
+
+      await addObjective(objective)
       setNewTitle('')
       setCategory('general')
+      setObjectiveType('simple')
+      setTargetValue('')
+      setTargetUnit('L')
       setShowForm(false)
     }
   }
@@ -122,6 +138,59 @@ function Objectives() {
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm text-cyan-300 mb-2">Type d'objectif</label>
+              <select
+                value={objectiveType}
+                onChange={(e) => setObjectiveType(e.target.value)}
+                className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-500"
+              >
+                <option value="simple">Simple (pas de valeur)</option>
+                <option value="water">💧 Eau (Litres)</option>
+                <option value="calories">🔥 Calories</option>
+                <option value="protein">💪 Protéines (g)</option>
+                <option value="custom">📊 Personnalisé</option>
+              </select>
+            </div>
+
+            {objectiveType !== 'simple' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-cyan-300 mb-2">Valeur cible</label>
+                  <input
+                    type="number"
+                    value={targetValue}
+                    onChange={(e) => setTargetValue(e.target.value)}
+                    placeholder="Ex: 8"
+                    className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                {objectiveType === 'custom' && (
+                  <div>
+                    <label className="block text-sm text-cyan-300 mb-2">Unité</label>
+                    <input
+                      type="text"
+                      value={targetUnit}
+                      onChange={(e) => setTargetUnit(e.target.value)}
+                      placeholder="Ex: km"
+                      className="w-full bg-slate-900/50 border border-cyan-500/30 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                )}
+                {objectiveType !== 'custom' && (
+                  <div>
+                    <label className="block text-sm text-cyan-300 mb-2">Unité</label>
+                    <input
+                      type="text"
+                      value={targetUnit}
+                      disabled
+                      className="w-full bg-slate-900/30 border border-cyan-500/30 rounded-lg px-4 py-2 text-gray-500 cursor-not-allowed"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button
                 onClick={handleAddObjective}
@@ -181,9 +250,21 @@ function Objectives() {
                       {obj.completed && <Check size={16} className="text-slate-900" />}
                     </button>
 
-                    <span className={`flex-1 ${obj.completed ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
-                      {obj.title}
-                    </span>
+                    <div className="flex-1">
+                      <div className={`${obj.completed ? 'text-gray-500 line-through' : 'text-gray-300'}`}>
+                        {obj.title}
+                      </div>
+                      {obj.targetValue && (
+                        <div className="text-xs text-cyan-400 mt-1 flex items-center gap-2">
+                          <Target size={12} />
+                          {obj.type === 'water' && `${obj.targetValue}${obj.targetUnit} / ${dailyLog?.water || 0}${obj.targetUnit}`}
+                          {obj.type === 'calories' && `${obj.targetValue} kcal / ${dailyLog?.calories || 0} kcal`}
+                          {obj.type === 'protein' && `${obj.targetValue}${obj.targetUnit} / ${dailyLog?.protein || 0}${obj.targetUnit}`}
+                          {obj.type === 'custom' && `${obj.targetValue}${obj.targetUnit}`}
+                          {obj.type !== 'custom' && obj.type !== 'water' && obj.type !== 'calories' && obj.type !== 'protein' && `${obj.targetValue}${obj.targetUnit}`}
+                        </div>
+                      )}
+                    </div>
 
                     <button
                       onClick={() => removeObjective(obj.id)}

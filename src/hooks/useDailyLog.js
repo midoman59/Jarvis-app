@@ -41,7 +41,7 @@ export const useDailyLog = () => {
   }
 
   const addWater = async (amount) => {
-    const newWater = (dailyLog?.water || 0) + amount
+    const newWater = Math.max(0, (dailyLog?.water || 0) + amount)
     return updateDailyLog({ water: newWater })
   }
 

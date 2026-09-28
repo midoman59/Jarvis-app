@@ -12,10 +12,13 @@ function Nutrition() {
   const [selectedFood, setSelectedFood] = useState(null)
   const [quantity, setQuantity] = useState(100)
   const [showCommon, setShowCommon] = useState(true)
+  const [showCustomForm, setShowCustomForm] = useState(false)
+  const [customFood, setCustomFood] = useState({ name: '', calories: 0, protein: 0, carbs: 0, fat: 0 })
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
+      setShowCommon(true)
       return
     }
 
@@ -23,9 +26,10 @@ function Nutrition() {
     try {
       const results = await searchFood(searchQuery)
       setSearchResults(results)
-      setShowCommon(false)
+      setShowCommon(results.length === 0)
     } catch (error) {
       console.error('Search error:', error)
+      setShowCommon(true)
     } finally {
       setLoading(false)
     }
@@ -45,10 +49,24 @@ function Nutrition() {
     setSelectedFood(null)
     setQuantity(100)
     setSearchQuery('')
+    setShowCommon(true)
+  }
+
+  const handleAddCustomFood = () => {
+    if (!customFood.name.trim()) return
+
+    const newFood = {
+      ...customFood,
+      id: `custom-${Date.now()}`
+    }
+
+    setSelectedFood(newFood)
+    setCustomFood({ name: '', calories: 0, protein: 0, carbs: 0, fat: 0 })
+    setShowCustomForm(false)
   }
 
   const foodList = showCommon
-    ? COMMON_FOODS.map((f, i) => ({ id: i, ...f }))
+    ? COMMON_FOODS.map((f, i) => ({ ...f, id: `common-${f.name}` }))
     : searchResults
 
   const selectedMacros = selectedFood ? calculateMacros(quantity, selectedFood) : null
@@ -93,6 +111,75 @@ function Nutrition() {
             </div>
 
             {loading && <p className="text-cyan-400 text-sm">Recherche en cours...</p>}
+
+            {!showCustomForm && (
+              <button
+                onClick={() => setShowCustomForm(true)}
+                className="w-full mt-2 text-sm text-cyan-400 hover:text-cyan-300 p-2 rounded-lg border border-cyan-500/30 hover:border-cyan-500/50 transition"
+              >
+                + Ajouter un aliment personnalisé
+              </button>
+            )}
+
+            {showCustomForm && (
+              <div className="mt-4 p-4 rounded-lg bg-slate-900/30 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Nom de l'aliment"
+                  value={customFood.name}
+                  onChange={(e) => setCustomFood({ ...customFood, name: e.target.value })}
+                  className="w-full bg-slate-900/50 border border-cyan-500/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    placeholder="Calories"
+                    value={customFood.calories}
+                    onChange={(e) => setCustomFood({ ...customFood, calories: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-900/50 border border-cyan-500/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Protéines (g)"
+                    value={customFood.protein}
+                    onChange={(e) => setCustomFood({ ...customFood, protein: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-900/50 border border-cyan-500/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Glucides (g)"
+                    value={customFood.carbs}
+                    onChange={(e) => setCustomFood({ ...customFood, carbs: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-900/50 border border-cyan-500/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Lipides (g)"
+                    value={customFood.fat}
+                    onChange={(e) => setCustomFood({ ...customFood, fat: parseInt(e.target.value) || 0 })}
+                    className="bg-slate-900/50 border border-cyan-500/30 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddCustomFood}
+                    disabled={!customFood.name.trim()}
+                    className="flex-1 bg-cyan-500/30 hover:bg-cyan-500/50 disabled:opacity-50 rounded px-3 py-2 text-sm text-cyan-400 transition"
+                  >
+                    Ajouter
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCustomForm(false)
+                      setCustomFood({ name: '', calories: 0, protein: 0, carbs: 0, fat: 0 })
+                    }}
+                    className="flex-1 bg-slate-900/50 hover:bg-slate-800 rounded px-3 py-2 text-sm text-gray-400 transition"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Food List */}
@@ -111,22 +198,28 @@ function Nutrition() {
                   {searchQuery ? 'Aucun résultat trouvé' : 'Aucun aliment disponible'}
                 </p>
               ) : (
-                foodList.map(food => (
-                  <button
-                    key={food.id}
-                    onClick={() => setSelectedFood(food)}
-                    className={`w-full p-3 rounded-lg transition border-2 text-left ${
-                      selectedFood?.id === food.id
-                        ? 'glass-dark border-cyan-500 bg-cyan-500/20'
-                        : 'glass-dark border-cyan-500/20 hover:border-cyan-500/50'
-                    }`}
-                  >
-                    <div className="font-medium text-white text-sm">{food.name}</div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      {food.calories} kcal/100g • P: {food.protein}g • C: {food.carbs}g • F: {food.fat}g
-                    </div>
-                  </button>
-                ))
+                foodList.map(food => {
+                  const isSelected = selectedFood?.id === food.id && selectedFood?.name === food.name
+                  return (
+                    <motion.button
+                      key={food.id}
+                      onClick={() => setSelectedFood(food)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`w-full p-4 rounded-lg transition border-2 text-left cursor-pointer ${
+                        isSelected
+                          ? 'glass-dark border-cyan-500 bg-cyan-500/30 shadow-lg shadow-cyan-500/20'
+                          : 'glass-dark border-cyan-500/20 hover:border-cyan-500/50 hover:bg-slate-900/40'
+                      }`}
+                    >
+                      <div className="font-semibold text-cyan-300 text-sm">{food.name}</div>
+                      <div className="text-xs text-gray-400 mt-1 flex justify-between">
+                        <span>{food.calories} kcal/100g</span>
+                        <span>P:{food.protein}g • C:{food.carbs}g • F:{food.fat}g</span>
+                      </div>
+                    </motion.button>
+                  )
+                })
               )}
             </div>
           </motion.div>
